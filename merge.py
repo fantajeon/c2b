@@ -20,9 +20,12 @@ with open(outfilename, 'wt', encoding='utf-8') as f:
           fields = row.split(',', 1)
           strings = fields[1].strip()
           if strings[-1] == ',':
-            strings = strings[1:-2]
+            strings = strings[1:-1]
           if strings not in dup_check:
             keywords = strings.split('|')
+            if len(keywords) < 2:
+              print ("error keywords={}", keywords)
+              continue
             try:
               csv_writer.writerow(keywords)
               dup_check[strings] = 1

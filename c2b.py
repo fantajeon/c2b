@@ -15,21 +15,27 @@ from six.moves import urllib
 from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 import csv
+import io
 
 # Step 1: Read relation into a string
 print("Step 1: Read the data.")
-filename = 'ExcelExport_1000986_20160801135703.csv'
+filename = './data/train.csv'
 
 # Read the data into a string.
 # file (zipfile) 을 읽어옴
 # text8.zip 의 내용은 파일 하나임. 코드를 봐서는 ' '로 구분된 단어들인 듯.
 def read_data(filename):
-    f = open(filename, encoding='cp949')
-    csvReader = csv.reader(f)
-    next(csvReader)
+    f = open(filename, 'rt', encoding='utf-8')
     words = {}
-    for row in csvReader:
-      words[row[0]] = row[1]
+    wl = 0
+    for line in f.readlines():
+      wl += 1
+      csvReader = csv.reader(io.StringIO(line), delimiter=',')
+      try:
+        for row in csvReader:
+          words[row[0]] = row[1]
+      except Exception as e:
+        print ("Exception: {},wl={},{}".format(e,wl,line))
     f.close()
     return words
 
