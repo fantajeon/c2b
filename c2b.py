@@ -2,7 +2,6 @@
 '''
 참고: Step 3 가 없음. 원문이 그래서 그렇게 놔두었음.
 '''
-
 from __future__ import absolute_import
 from __future__ import print_function
 
@@ -17,6 +16,13 @@ from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 import csv
 import io
+import matplotlib
+import matplotlib.font_manager
+
+matplotlib.rc("font", family="NanumGothic_Coding")
+
+class BreakoutException(Exception):
+  pass
 
 # Step 1: Read relation into a string
 print("Step 1: Read the data.")
@@ -35,8 +41,10 @@ def read_data(filename):
       csvReader = csv.reader(io.StringIO(line), delimiter=',')
       try:
         for row in csvReader:
-          w = [words.append(w.strip()) for w in row]
-        words_pairs.append(w)
+          for w in row:
+            words.append(w.strip()) 
+          w1 = [w.strip() for w in row]
+        words_pairs.append(w1)
       except Exception as e:
         print ("Exception: {},wl={},{}".format(e,wl,line))
         os.sys.exit(-1)
@@ -47,6 +55,7 @@ def read_data(filename):
 words, words_pairs = read_data(filename)
 print('Data size', len(words))
 print('Sample words: ', words[:10])
+print('Sample words_pairs: ', len(words_pairs))
 
 # Step 2: Build the dictionary and replace rare words with UNK token.
 print("\nStep 2: Build the dictionary and replace rare words with UNK token.")
@@ -91,10 +100,9 @@ def build_datapairs(words_pairs, dictionary):
     for w in words:
       if w in dictionary:
         index = dictionary[w]
-      else:
-        index = 0
-      sub_pairs.append(index)
-    data_pairs.append(sub_pairs)
+        sub_pairs.append(index)
+    if len(sub_pairs) > 0:
+      data_pairs.append(sub_pairs)
 
   return data_pairs
 
@@ -103,6 +111,7 @@ del words_pairs
 
 print('Most common words (+UNK)', count[:5])
 print('Sample data: ', data[:10])
+print('Sample data_pairs: ', len(data_pairs))
 print('Sample count: ', count[:10])
 print('Sample dict: ', list(dictionary.items())[:10])
 print('Sample reverse dict: ', list(reverse_dictionary.items())[:10])
@@ -147,12 +156,20 @@ def generate_batch(batch_size, num_skips, skip_window):
     # skip-gram은 타겟 단어로부터 주변의 컨텍스트 단어를 예측하는 모델이다.
     # skip-gram model을 학습하기 전에, words를 (target, context) 형태로 변환해 주어야 한다.
     # 아래 코드는 그 작업을 batch_size 크기로 수행한다.
+    def nextbuf(len_buf):
+      global data_sub_index
+      global data_index
+      data_sub_index += 1
+      if data_sub_index >= len_buf:
+        data_sub_index = 0
+        data_index = (data_index + 1) % len(data_pairs)
     i=0
     try:
       while True:
         buf = data_pairs[data_index]
         targets_to_avoid = [data_sub_index]
         target = data_sub_index
+
         for j in range(min(num_skips, len(buf)-1)):
           while True:
             if target in targets_to_avoid:
@@ -165,7 +182,9 @@ def generate_batch(batch_size, num_skips, skip_window):
           labels[i, 0] = buf[target]
           i += 1
           if i >= batch_size:
+            nextbuf(len(buf))
             raise BreakoutException
+
         data_sub_index += 1
         if data_sub_index >= len(buf):
           targets_to_avoid = []
@@ -173,9 +192,9 @@ def generate_batch(batch_size, num_skips, skip_window):
           data_index = (data_index + 1) % len(data_pairs)
     except BreakoutException:
       pass
-    except Exception as e:
-      print ("{}".format(e))
-      pdb.set_trace()
+    #except Exception as e:
+    #  print ("{}".format(e))
+    #  pdb.set_trace()
 
     return batch, labels
 
@@ -193,15 +212,15 @@ for i in range(8):
 print("\nStep 5: Build and train a skip-gram model.")
 batch_size = 128
 embedding_size = 128  # Dimension of the embedding vector.
-skip_window = 1       # How many words to consider left and right.
+skip_window = 15       # How many words to consider left and right.
 num_skips = 2         # How many times to reuse an input to generate a label.
 
 # We pick a random validation set to sample nearest neighbors. Here we limit the
 # validation samples to the words that have a low numeric ID, which by
 # construction are also the most frequent.
-valid_size = 16     # Random set of words to evaluate similarity on.
+valid_size = 1000     # Random set of words to evaluate similarity on.
 valid_window = 100  # Only pick dev samples in the head of the distribution.
-valid_examples = np.array(random.sample(np.arange(valid_window), valid_size))
+valid_examples = np.array( random.sample( list(np.arange(valid_window)), valid_size))
 # [0 ~ valid_window] 의 numpy array를 만들고 거기서 valid_size 만큼 샘플링함.
 # 즉, 여기서는 0~99 사이의 수 중 랜덤하게 16개를 고른 것이 valid_examples 임.
 num_sampled = 64    # Number of negative examples to sample.
@@ -255,7 +274,7 @@ with graph.as_default():
 
 # Step 6: Begin training
 print("\nStep 6: Begin training")
-num_steps = 100001
+num_steps = 100000001
 
 with tf.Session(graph=graph) as session:
     # We must initialize all variables before we use them.
