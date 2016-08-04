@@ -6,6 +6,7 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
+import pdb
 import collections
 import math
 import numpy as np
@@ -26,27 +27,30 @@ filename = './data/train.csv'
 # text8.zip 의 내용은 파일 하나임. 코드를 봐서는 ' '로 구분된 단어들인 듯.
 def read_data(filename):
     f = open(filename, 'rt', encoding='utf-8')
-    words = {}
+    words = list()
+    words_pairs = list()
     wl = 0
     for line in f.readlines():
       wl += 1
       csvReader = csv.reader(io.StringIO(line), delimiter=',')
       try:
         for row in csvReader:
-          words[row[0]] = row[1]
+          w = [words.append(w.strip()) for w in row]
+        words_pairs.append(w)
       except Exception as e:
         print ("Exception: {},wl={},{}".format(e,wl,line))
+        os.sys.exit(-1)
     f.close()
-    return words
+    return words, words_pairs
 
 
-words = read_data(filename)
+words, words_pairs = read_data(filename)
 print('Data size', len(words))
 print('Sample words: ', words[:10])
 
 # Step 2: Build the dictionary and replace rare words with UNK token.
 print("\nStep 2: Build the dictionary and replace rare words with UNK token.")
-vocabulary_size = 50000
+vocabulary_size = 5000000
 
 def build_dataset(words):
     """
@@ -63,7 +67,7 @@ def build_dataset(words):
     count.extend(collections.Counter(words).most_common(vocabulary_size - 1))
     dictionary = dict()
     for word, _ in count:
-        dictionary[word] = len(dictionary) # insert index to dictionary (len이 계속 증가하므로 결과적으로 index의 효과)
+      dictionary[word] = len(dictionary) # insert index to dictionary (len이 계속 증가하므로 결과적으로 index의 효과)
     data = list()
     unk_count = 0
     for word in words:
@@ -79,13 +83,32 @@ def build_dataset(words):
 
 data, count, dictionary, reverse_dictionary = build_dataset(words)
 del words  # Hint to reduce memory.
+
+def build_datapairs(words_pairs, dictionary):
+  data_pairs = list()
+  for words in words_pairs:
+    sub_pairs = list()
+    for w in words:
+      if w in dictionary:
+        index = dictionary[w]
+      else:
+        index = 0
+      sub_pairs.append(index)
+    data_pairs.append(sub_pairs)
+
+  return data_pairs
+
+data_pairs = build_datapairs(words_pairs, dictionary)
+del words_pairs
+
 print('Most common words (+UNK)', count[:5])
 print('Sample data: ', data[:10])
 print('Sample count: ', count[:10])
-print('Sample dict: ', dictionary.items()[:10])
-print('Sample reverse dict: ', reverse_dictionary.items()[:10])
+print('Sample dict: ', list(dictionary.items())[:10])
+print('Sample reverse dict: ', list(reverse_dictionary.items())[:10])
 
 data_index = 0
+data_sub_index = 0
 
 
 # Step 4: Function to generate a training batch for the skip-gram model.
@@ -102,6 +125,7 @@ def generate_batch(batch_size, num_skips, skip_window):
     :return labels      : labels of mini-batch. [batch_size][1] 의 2d array.
     """
     global data_index
+    global data_sub_index
     assert batch_size % num_skips == 0  # num_skips의 배수로 batch가 생성되므로.
     assert num_skips <= 2 * skip_window # num_skips == 2*skip_window 이면 모든 context window의 context에 대해 pair가 생성된다.
     # 즉, 그 이상 커지면 안 됨.
@@ -115,29 +139,43 @@ def generate_batch(batch_size, num_skips, skip_window):
     # 양쪽에 모두 push(append) & pop 을 할 수 있음.
 
     # buffer = data[data_index:data_index+span] with circling
-    for _ in range(span):
-        buffer.append(data[data_index])
-        data_index = (data_index + 1) % len(data)
+    #for _ in range(span):
+    #    buffer.append(data[data_index])
+    #    data_index = (data_index + 1) % len(data)
 
     # // 는 나머지 혹은 소수점 아래를 버리는 연산자
     # skip-gram은 타겟 단어로부터 주변의 컨텍스트 단어를 예측하는 모델이다.
     # skip-gram model을 학습하기 전에, words를 (target, context) 형태로 변환해 주어야 한다.
     # 아래 코드는 그 작업을 batch_size 크기로 수행한다.
-    for i in range(batch_size // num_skips):
-        target = skip_window  # target label at the center of the buffer
-        targets_to_avoid = [ skip_window ]
-        for j in range(num_skips):
-            while target in targets_to_avoid:
-                # context window에서 context를 뽑아내는 작업은 랜덤하게 이루어진다.
-                # 단, skip_window*2 == num_skips 인 경우, 어차피 모든 context를 다 뽑아내므로 랜덤은 별 의미가 없음. 순서가 랜덤하게 될 뿐.
-                target = random.randint(0, span - 1)
+    i=0
+    try:
+      while True:
+        buf = data_pairs[data_index]
+        targets_to_avoid = [data_sub_index]
+        target = data_sub_index
+        for j in range(min(num_skips, len(buf)-1)):
+          while True:
+            if target in targets_to_avoid:
+              target = random.randint(0, len(buf) - 1)
+            else:
+              break
 
-            targets_to_avoid.append(target)
-            batch[i * num_skips + j] = buffer[skip_window]
-            labels[i * num_skips + j, 0] = buffer[target]
-
-        buffer.append(data[data_index])
-        data_index = (data_index + 1) % len(data)
+          targets_to_avoid.append(target)
+          batch[i] = buf[data_sub_index]
+          labels[i, 0] = buf[target]
+          i += 1
+          if i >= batch_size:
+            raise BreakoutException
+        data_sub_index += 1
+        if data_sub_index >= len(buf):
+          targets_to_avoid = []
+          data_sub_index = 0
+          data_index = (data_index + 1) % len(data_pairs)
+    except BreakoutException:
+      pass
+    except Exception as e:
+      print ("{}".format(e))
+      pdb.set_trace()
 
     return batch, labels
 
