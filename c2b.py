@@ -262,7 +262,8 @@ with graph.as_default():
                        num_sampled, vocabulary_size))
 
     # Construct the SGD optimizer using a learning rate of 1.0.
-    optimizer = tf.train.GradientDescentOptimizer(1.0).minimize(loss)
+    #optimizer = tf.train.GradientDescentOptimizer(1.0).minimize(loss)
+    optimizer = tf.train.AdamOptimizer(1e-4).minimize(loss)
 
     # Compute the cosine similarity between minibatch examples and all embeddings.
     # minibatch (valid_embeddings) 와 all embeddings 사이의 cosine similarity를 계산한다.
@@ -274,7 +275,7 @@ with graph.as_default():
 
 # Step 6: Begin training
 print("\nStep 6: Begin training")
-num_steps = 100000001
+num_steps = 2000001
 
 with tf.Session(graph=graph) as session:
     # We must initialize all variables before we use them.
@@ -300,7 +301,7 @@ with tf.Session(graph=graph) as session:
             average_loss = 0
 
         # note that this is expensive (~20% slowdown if computed every 500 steps)
-        if step % 10000 == 0:
+        if step % 80000 == 0:
             sim = similarity.eval()
             for i in xrange(valid_size):
                 valid_word = reverse_dictionary[valid_examples[i]]
