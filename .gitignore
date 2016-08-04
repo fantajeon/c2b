@@ -87,3 +87,10 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# training datas
+data/train/
+data/test
+data/train.csv
+data/test.csv
+.DS_Store
