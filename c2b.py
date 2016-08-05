@@ -19,7 +19,7 @@ import io
 import matplotlib
 import matplotlib.font_manager
 
-matplotlib.rc("font", family="나눔고딕_코딩")
+matplotlib.rc("font", family="NanumGothic_Coding")
 
 class BreakoutException(Exception):
   pass
@@ -46,7 +46,7 @@ def read_data(filename):
         for w in ws:
           if len(w) > 0:
             words.append(w) 
-            w1.append(w1)
+            w1.append(w)
       words_pairs.append(w1)
     except Exception as e:
       print ("Exception: {},wl={},{}".format(e,wl,line))
@@ -279,8 +279,8 @@ with graph.as_default():
 # Step 6: Begin training
 print("\nStep 6: Begin training")
 #num_steps = 5000001
-num_steps = 2000001
-#num_steps = 1
+#num_steps = 2000001
+num_steps = 1
 
 with tf.Session(graph=graph) as session:
   # We must initialize all variables before we use them.
