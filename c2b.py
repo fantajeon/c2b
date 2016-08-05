@@ -19,7 +19,7 @@ import io
 import matplotlib
 import matplotlib.font_manager
 
-matplotlib.rc("font", family="NanumGothic_Coding")
+matplotlib.rc("font", family="나눔고딕_코딩")
 
 class BreakoutException(Exception):
   pass
@@ -41,9 +41,12 @@ def read_data(filename):
     csvReader = csv.reader(io.StringIO(line), delimiter=',')
     try:
       for row in csvReader:
-        for w in row:
-          words.append(w.strip()) 
-        w1 = [w.strip() for w in row]
+        ws = [w.strip() for w in row]
+        w1 = list()
+        for w in ws:
+          if len(w) > 1:
+            words.append(w) 
+            w1.append(w1)
       words_pairs.append(w1)
     except Exception as e:
       print ("Exception: {},wl={},{}".format(e,wl,line))
@@ -59,7 +62,8 @@ print('Sample words_pairs: ', len(words_pairs))
 
 # Step 2: Build the dictionary and replace rare words with UNK token.
 print("\nStep 2: Build the dictionary and replace rare words with UNK token.")
-vocabulary_size = 5000000
+vocabulary_size = 20000000
+#vocabulary_size = 5000000
 
 def build_dataset(words):
   """
@@ -274,7 +278,9 @@ with graph.as_default():
 
 # Step 6: Begin training
 print("\nStep 6: Begin training")
+#num_steps = 5000001
 num_steps = 2000001
+#num_steps = 1
 
 with tf.Session(graph=graph) as session:
   # We must initialize all variables before we use them.
@@ -316,30 +322,30 @@ with tf.Session(graph=graph) as session:
 # Step 7: Visualize the embeddings.
 print("\nStep 7: Visualize the embeddings.")
 def plot_with_labels(low_dim_embs, labels, filename='tsne.png'):
-    assert low_dim_embs.shape[0] >= len(labels), "More labels than embeddings"
-    plt.figure(figsize=(18, 18))  #in inches
-    for i, label in enumerate(labels):
-        x, y = low_dim_embs[i,:]
-        plt.scatter(x, y)
-        plt.annotate(label,
-                     xy=(x, y),
-                     xytext=(5, 2),
-                     textcoords='offset points',
-                     ha='right',
-                     va='bottom')
-    plt.savefig(filename)
+  assert low_dim_embs.shape[0] >= len(labels), "More labels than embeddings"
+  plt.figure(figsize=(18, 18))  #in inches
+  for i, label in enumerate(labels):
+    x, y = low_dim_embs[i,:]
+    plt.scatter(x, y)
+    plt.annotate(label,
+                   xy=(x, y),
+                   xytext=(5, 2),
+                   textcoords='offset points',
+                   ha='right',
+                   va='bottom')
+  plt.savefig(filename)
 
 try:
-    # 혹시 여기서 에러가 난다면, scikit-learn 과 matplotlib 을 최신버전으로 업데이트하자.
-    from sklearn.manifold import TSNE
-    import matplotlib.pyplot as plt
+  # 혹시 여기서 에러가 난다면, scikit-learn 과 matplotlib 을 최신버전으로 업데이트하자.
+  from sklearn.manifold import TSNE
+  import matplotlib.pyplot as plt
 
-    tsne = TSNE(perplexity=30, n_components=2, init='pca', n_iter=5000)
-    plot_only = 500
+  tsne = TSNE(perplexity=30, n_components=2, init='pca', n_iter=5000)
+  plot_only = 500
 
-    low_dim_embs = tsne.fit_transform(final_embeddings[:plot_only,:])
-    labels = [reverse_dictionary[i] for i in xrange(plot_only)]
-    plot_with_labels(low_dim_embs, labels)
+  low_dim_embs = tsne.fit_transform(final_embeddings[:plot_only,:])
+  labels = [reverse_dictionary[i] for i in xrange(plot_only)]
+  plot_with_labels(low_dim_embs, labels)
 
 except ImportError:
-    print("Please install sklearn and matplotlib to visualize embeddings.")
+  print("Please install sklearn and matplotlib to visualize embeddings.")
