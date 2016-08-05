@@ -44,7 +44,7 @@ def read_data(filename):
         ws = [w.strip() for w in row]
         w1 = list()
         for w in ws:
-          if len(w) > 1:
+          if len(w) > 0:
             words.append(w) 
             w1.append(w1)
       words_pairs.append(w1)
