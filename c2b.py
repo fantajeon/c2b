@@ -219,7 +219,7 @@ num_skips = 2         # How many times to reuse an input to generate a label.
 # validation samples to the words that have a low numeric ID, which by
 # construction are also the most frequent.
 valid_size = 100     # Random set of words to evaluate similarity on.
-valid_window = 10000  # Only pick dev samples in the head of the distribution.
+valid_window = 1000  # Only pick dev samples in the head of the distribution.
 valid_examples = np.array( random.sample( list(np.arange(valid_window)), valid_size))
 # [0 ~ valid_window] 의 numpy array를 만들고 거기서 valid_size 만큼 샘플링함.
 # 즉, 여기서는 0~99 사이의 수 중 랜덤하게 16개를 고른 것이 valid_examples 임.
@@ -261,8 +261,8 @@ with graph.as_default():
                      num_sampled, vocabulary_size))
 
   # Construct the SGD optimizer using a learning rate of 1.0.
-  #optimizer = tf.train.GradientDescentOptimizer(1.0).minimize(loss)
-  optimizer = tf.train.AdamOptimizer(1e-3).minimize(loss)
+  optimizer = tf.train.GradientDescentOptimizer(1.0).minimize(loss)
+  #optimizer = tf.train.AdamOptimizer(1e-3).minimize(loss)
 
   # Compute the cosine similarity between minibatch examples and all embeddings.
   # minibatch (valid_embeddings) 와 all embeddings 사이의 cosine similarity를 계산한다.
