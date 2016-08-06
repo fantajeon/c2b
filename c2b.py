@@ -62,7 +62,7 @@ print('Sample words_pairs: ', len(words_pairs))
 
 # Step 2: Build the dictionary and replace rare words with UNK token.
 print("\nStep 2: Build the dictionary and replace rare words with UNK token.")
-vocabulary_size = 20000000
+vocabulary_size = 10000000
 #vocabulary_size = 5000000
 
 def build_dataset(words):
@@ -223,7 +223,7 @@ num_skips = 2         # How many times to reuse an input to generate a label.
 # validation samples to the words that have a low numeric ID, which by
 # construction are also the most frequent.
 valid_size = 100     # Random set of words to evaluate similarity on.
-valid_window = 1000  # Only pick dev samples in the head of the distribution.
+valid_window = 100000  # Only pick dev samples in the head of the distribution.
 valid_examples = np.array( random.sample( list(np.arange(valid_window)), valid_size))
 # [0 ~ valid_window] 의 numpy array를 만들고 거기서 valid_size 만큼 샘플링함.
 # 즉, 여기서는 0~99 사이의 수 중 랜덤하게 16개를 고른 것이 valid_examples 임.
@@ -278,9 +278,9 @@ with graph.as_default():
 
 # Step 6: Begin training
 print("\nStep 6: Begin training")
-#num_steps = 5000001
+num_steps = 5000001
 #num_steps = 2000001
-num_steps = 1
+#num_steps = 1
 
 with tf.Session(graph=graph) as session:
   # We must initialize all variables before we use them.
@@ -328,11 +328,11 @@ def plot_with_labels(low_dim_embs, labels, filename='tsne.png'):
     x, y = low_dim_embs[i,:]
     plt.scatter(x, y)
     plt.annotate(label,
-                   xy=(x, y),
-                   xytext=(5, 2),
-                   textcoords='offset points',
-                   ha='right',
-                   va='bottom')
+                  xy=(x, y),
+                  xytext=(5, 2),
+                  textcoords='offset points',
+                  ha='right',
+                  va='bottom')
   plt.savefig(filename)
 
 try:
