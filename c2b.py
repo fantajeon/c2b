@@ -44,7 +44,7 @@ def read_data(filename):
         ws = [w.strip() for w in row]
         w1 = list()
         for w in ws:
-          if len(w) > 0:
+          if len(w) > 1:
             words.append(w) 
             w1.append(w)
       words_pairs.append(w1)
@@ -62,8 +62,8 @@ print('Sample words_pairs: ', len(words_pairs))
 
 # Step 2: Build the dictionary and replace rare words with UNK token.
 print("\nStep 2: Build the dictionary and replace rare words with UNK token.")
-vocabulary_size = 10000000
-#vocabulary_size = 5000000
+#vocabulary_size = 10000000
+vocabulary_size = 5000000
 
 def build_dataset(words):
   """
@@ -278,7 +278,7 @@ with graph.as_default():
 
 # Step 6: Begin training
 print("\nStep 6: Begin training")
-num_steps = 5000001
+num_steps = 100000001
 #num_steps = 2000001
 #num_steps = 1
 
@@ -301,6 +301,8 @@ with tf.Session(graph=graph) as session:
     if step % 2000 == 0:
       if step > 0:
           average_loss = average_loss / 2000
+          if average_loss < 0.5:
+            break
       # The average loss is an estimate of the loss over the last 2000 batches.
       print("Average loss at step ", step, ": ", average_loss)
       average_loss = 0
