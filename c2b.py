@@ -36,6 +36,7 @@ def read_data(filename):
   words = list()
   words_pairs = list()
   wl = 0
+  max_len = 0
   for line in f.readlines():
     wl += 1
     csvReader = csv.reader(io.StringIO(line), delimiter=',')
@@ -47,10 +48,12 @@ def read_data(filename):
           if len(w) > 1:
             words.append(w) 
             w1.append(w)
+      max_len = max(len(w1),max_len)
       words_pairs.append(w1)
     except Exception as e:
       print ("Exception: {},wl={},{}".format(e,wl,line))
       os.sys.exit(-1)
+  print ("max_len={}".format(max_len))
   f.close()
   return words, words_pairs
 
@@ -216,7 +219,7 @@ for i in range(8):
 print("\nStep 5: Build and train a skip-gram model.")
 batch_size = 128
 embedding_size = 128  # Dimension of the embedding vector.
-skip_window = 15       # How many words to consider left and right.
+skip_window = 1500       # How many words to consider left and right.
 num_skips = 2         # How many times to reuse an input to generate a label.
 
 # We pick a random validation set to sample nearest neighbors. Here we limit the
@@ -227,11 +230,13 @@ valid_window = 100000  # Only pick dev samples in the head of the distribution.
 valid_examples = np.array( random.sample( list(np.arange(valid_window)), valid_size))
 # [0 ~ valid_window] 의 numpy array를 만들고 거기서 valid_size 만큼 샘플링함.
 # 즉, 여기서는 0~99 사이의 수 중 랜덤하게 16개를 고른 것이 valid_examples 임.
-num_sampled = 64    # Number of negative examples to sample.
+#num_sampled = 64    # Number of negative examples to sample.
+num_sampled = 1200    # Number of negative examples to sample.
 
 print("valid_examples: ", valid_examples)
 
 graph = tf.Graph()
+
 
 with graph.as_default():
   # Input data.
@@ -282,7 +287,9 @@ num_steps = 100000001
 #num_steps = 2000001
 #num_steps = 1
 
+saver = tf.train.Saver()
 with tf.Session(graph=graph) as session:
+  summary_Writer = tf.train.SummaryWriter('./logs', session.graph)
   # We must initialize all variables before we use them.
   tf.initialize_all_variables().run()
   print("Initialized")
@@ -309,6 +316,7 @@ with tf.Session(graph=graph) as session:
 
     # note that this is expensive (~20% slowdown if computed every 500 steps)
     if step % 80000 == 0:
+      save_path = saver.Save(session, "./tmp/model.ckpt")
       sim = similarity.eval()
       for i in xrange(valid_size):
         valid_word = reverse_dictionary[valid_examples[i]]
@@ -320,6 +328,7 @@ with tf.Session(graph=graph) as session:
           log_str = "%s %s," % (log_str, close_word)
         print(log_str)
   final_embeddings = normalized_embeddings.eval()
+
 
 # Step 7: Visualize the embeddings.
 print("\nStep 7: Visualize the embeddings.")
