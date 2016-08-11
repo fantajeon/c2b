@@ -18,6 +18,7 @@ import csv
 import io
 import matplotlib
 import matplotlib.font_manager
+import pickle
 
 matplotlib.rc("font", family="NanumGothic_Coding")
 
@@ -45,9 +46,11 @@ def read_data(filename):
         ws = [w.strip() for w in row]
         w1 = list()
         for w in ws:
-          if len(w) > 1:
+          if len(w) > 1 and '?' not in w:
             words.append(w) 
             w1.append(w)
+      if len(w1) < 2:
+        continue
       max_len = max(len(w1),max_len)
       words_pairs.append(w1)
     except Exception as e:
@@ -66,7 +69,8 @@ print('Sample words_pairs: ', len(words_pairs))
 # Step 2: Build the dictionary and replace rare words with UNK token.
 print("\nStep 2: Build the dictionary and replace rare words with UNK token.")
 #vocabulary_size = 10000000
-vocabulary_size = 5000000
+#vocabulary_size = 5000000
+vocabulary_size = 2000000
 
 def build_dataset(words):
   """
@@ -219,8 +223,8 @@ for i in range(8):
 print("\nStep 5: Build and train a skip-gram model.")
 batch_size = 128
 embedding_size = 128  # Dimension of the embedding vector.
-skip_window = 1500       # How many words to consider left and right.
-num_skips = 2         # How many times to reuse an input to generate a label.
+skip_window = 20       # How many words to consider left and right.
+num_skips = 10         # How many times to reuse an input to generate a label.
 
 # We pick a random validation set to sample nearest neighbors. Here we limit the
 # validation samples to the words that have a low numeric ID, which by
@@ -231,7 +235,7 @@ valid_examples = np.array( random.sample( list(np.arange(valid_window)), valid_s
 # [0 ~ valid_window] 의 numpy array를 만들고 거기서 valid_size 만큼 샘플링함.
 # 즉, 여기서는 0~99 사이의 수 중 랜덤하게 16개를 고른 것이 valid_examples 임.
 #num_sampled = 64    # Number of negative examples to sample.
-num_sampled = 1200    # Number of negative examples to sample.
+num_sampled = 12    # Number of negative examples to sample.
 
 print("valid_examples: ", valid_examples)
 
@@ -283,11 +287,11 @@ with graph.as_default():
 
 # Step 6: Begin training
 print("\nStep 6: Begin training")
-num_steps = 100000001
+#num_steps = 100000001
+num_steps = 5000001
 #num_steps = 2000001
 #num_steps = 1
 
-saver = tf.train.Saver()
 with tf.Session(graph=graph) as session:
   summary_Writer = tf.train.SummaryWriter('./logs', session.graph)
   # We must initialize all variables before we use them.
@@ -316,7 +320,11 @@ with tf.Session(graph=graph) as session:
 
     # note that this is expensive (~20% slowdown if computed every 500 steps)
     if step % 80000 == 0:
-      save_path = saver.Save(session, "./tmp/model.ckpt")
+      # save embedding
+      final_embeddings = normalized_embeddings.eval()
+      f_e = open('final_embeddings.pkl', 'rb')
+      pickle.dump(f_e)
+      f_e.close()
       sim = similarity.eval()
       for i in xrange(valid_size):
         valid_word = reverse_dictionary[valid_examples[i]]
@@ -328,6 +336,9 @@ with tf.Session(graph=graph) as session:
           log_str = "%s %s," % (log_str, close_word)
         print(log_str)
   final_embeddings = normalized_embeddings.eval()
+  f_e = open('final_embeddings.pkl', 'rb')
+  pickle.dump(f_e)
+  f_e.close()
 
 
 # Step 7: Visualize the embeddings.
@@ -345,6 +356,7 @@ def plot_with_labels(low_dim_embs, labels, filename='tsne.png'):
                   ha='right',
                   va='bottom')
   plt.savefig(filename)
+
 
 try:
   # 혹시 여기서 에러가 난다면, scikit-learn 과 matplotlib 을 최신버전으로 업데이트하자.
