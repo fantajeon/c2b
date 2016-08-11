@@ -224,7 +224,7 @@ print("\nStep 5: Build and train a skip-gram model.")
 batch_size = 128
 embedding_size = 128  # Dimension of the embedding vector.
 skip_window = 20       # How many words to consider left and right.
-num_skips = 10         # How many times to reuse an input to generate a label.
+num_skips = 16         # How many times to reuse an input to generate a label.
 
 # We pick a random validation set to sample nearest neighbors. Here we limit the
 # validation samples to the words that have a low numeric ID, which by
@@ -288,7 +288,7 @@ with graph.as_default():
 # Step 6: Begin training
 print("\nStep 6: Begin training")
 #num_steps = 100000001
-num_steps = 5000001
+num_steps = 8000001
 #num_steps = 2000001
 #num_steps = 1
 
@@ -322,8 +322,8 @@ with tf.Session(graph=graph) as session:
     if step % 80000 == 0:
       # save embedding
       final_embeddings = normalized_embeddings.eval()
-      f_e = open('final_embeddings.pkl', 'rb')
-      pickle.dump(f_e)
+      f_e = open('final_embeddings.pkl', 'wb')
+      pickle.dump(final_embeddings, f_e)
       f_e.close()
       sim = similarity.eval()
       for i in xrange(valid_size):
@@ -333,11 +333,11 @@ with tf.Session(graph=graph) as session:
         log_str = "Nearest to %s:" % valid_word
         for k in xrange(top_k):
           close_word = reverse_dictionary[nearest[k]]
-          log_str = "%s %s," % (log_str, close_word)
+          log_str = "%s %s(%f)," % (log_str, close_word, sim[i,neartest[k]])
         print(log_str)
   final_embeddings = normalized_embeddings.eval()
-  f_e = open('final_embeddings.pkl', 'rb')
-  pickle.dump(f_e)
+  f_e = open('final_embeddings.pkl', 'wb')
+  pickle.dump(final_embeddings, f_e)
   f_e.close()
 
 
