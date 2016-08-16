@@ -333,7 +333,7 @@ with tf.Session(graph=graph) as session:
         log_str = "Nearest to %s:" % valid_word
         for k in xrange(top_k):
           close_word = reverse_dictionary[nearest[k]]
-          log_str = "%s %s(%f)," % (log_str, close_word, sim[i,neartest[k]])
+          log_str = "%s %s(%f)," % (log_str, close_word, sim[i,nearest[k]])
         print(log_str)
   final_embeddings = normalized_embeddings.eval()
   f_e = open('final_embeddings.pkl', 'wb')
